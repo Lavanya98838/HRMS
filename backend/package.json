@@ -1,0 +1,36 @@
+{
+  "name": "hrms-backend",
+  "version": "1.0.0",
+  "description": "Enterprise HRMS Backend - Auth System",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.9.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.2.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.5.1",
+    "groq-sdk": "^1.1.2",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.1",
+    "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^2.2.1",
+    "nodemailer": "^8.0.4",
+    "pdfkit": "^0.18.0",
+    "uuid": "^13.0.0",
+    "validator": "^13.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}
