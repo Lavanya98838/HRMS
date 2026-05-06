@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { employeeAPI, departmentAPI, roleAPI } from '../utils/phase2Api';
-import { leaveAPI } from '../utils/Phase3Api';
+import { leaveAPI } from '../utils/Phase3api';
 import api from '../utils/api';
 
 // ── Helper ────────────────────────────────────────────────
