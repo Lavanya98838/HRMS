@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { leaveAPI } from '../../utils/phase3Api';
+import { leaveAPI } from '../../utils/Phase3api';
 import toast from 'react-hot-toast';
 
 const LEAVE_TYPES = [

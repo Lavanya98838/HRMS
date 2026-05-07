@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { leaveAPI } from '../../utils/phase3Api';
+import { leaveAPI } from '../../utils/Phase3api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
