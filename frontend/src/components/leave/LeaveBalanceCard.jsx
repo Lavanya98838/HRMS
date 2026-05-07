@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { leaveAPI } from '../../utils/phase3Api';
+import { leaveAPI } from '../../utils/Phase3api';
 
 const LEAVE_CONFIG = {
   sick:   { label: 'Sick Leave',   icon: '🤒', color: '#ef4444' },
