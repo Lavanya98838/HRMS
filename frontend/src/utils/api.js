@@ -1,11 +1,13 @@
 import axios from 'axios';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
 
 // ── Main axios instance ──────────────────────────────
 const api = axios.create({
   baseURL: API_BASE,
-  withCredentials: true, // send cookies (refresh token)
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -38,7 +40,6 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 and not already retrying
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -46,7 +47,6 @@ api.interceptors.response.use(
       !originalRequest.url.includes('/auth/login')
     ) {
       if (isRefreshing) {
-        // Queue while refresh is in progress
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -72,7 +72,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Refresh failed — force logout
         sessionStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
