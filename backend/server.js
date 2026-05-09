@@ -28,7 +28,7 @@ import aiRoutes from "./routes/ai.routes.js";
 
 // ── Initialize Express ────────────────────────────────────────
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 // ─────────────────────────────────────────────────────────────
 //  MIDDLEWARE
@@ -184,10 +184,10 @@ const startServer = async () => {
     await connectDB();
 
     // Verify mailer connection
-    await verifyMailer();
+    verifyMailer().catch(err => console.warn('⚠️ Mailer check failed:', err.message))
 
     // Start listening
-    app.listen(PORT, () => {
+    app.listen(PORT,'0.0.0.0', () => {
       console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.log(`  🚀 HRMS Backend running on port ${PORT}`);
       console.log(`  🌍 Environment: ${process.env.NODE_ENV}`);
