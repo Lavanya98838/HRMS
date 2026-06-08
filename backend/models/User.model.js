@@ -36,10 +36,19 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ["admin", "hr", "manager", "employee"],
-        message: "Role must be admin, hr, manager, or employee",
+        values: ["admin", "subadmin", "hr", "manager", "employee"],
+        message: "Role must be admin, subadmin, hr, manager, or employee",
       },
       default: "employee",
+    },
+
+    // ── Role Level (from Role model — drives portal detection) ──
+    // L1-5 → employee, L6-7 → manager, L8-9 → hr, L10 → subadmin
+    roleLevel: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 10,
     },
 
     // ── Account Status ───────────────────────────
@@ -159,6 +168,7 @@ userSchema.methods.toSafeObject = function () {
     name: this.name,
     email: this.email,
     role: this.role,
+    roleLevel: this.roleLevel,   // ← needed for portal detection in AuthContext
     isActive: this.isActive,
     isVerified: this.isVerified,
     profilePicture: this.profilePicture,

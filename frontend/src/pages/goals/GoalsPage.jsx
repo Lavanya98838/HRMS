@@ -4,6 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   createGoal, getAllGoals, getMyGoals, updateGoal, deleteGoal,
 } from "../../services/goalService";
+
 import api from "../../utils/api";
 import "./GoalsPage.css";
 
@@ -22,12 +23,13 @@ const STATUS_LABELS = {
 };
 
 const PRIORITY_COLORS = { low: "#9ca3af", medium: "#f59e0b", high: "#ef4444" };
+const PRIORITY_BG     = { low: "rgba(156,163,175,.12)", medium: "rgba(245,158,11,.12)", high: "rgba(239,68,68,.12)" };
 const CAT_ICONS = { performance: "📈", learning: "📚", project: "🎯", personal: "🌱", other: "📋" };
 
 const currentYear = new Date().getFullYear();
 const currentQ    = Math.ceil((new Date().getMonth() + 1) / 3);
 
-// ── Employee Search Dropdown (reusable) ───────────────────
+// ── Employee Search Dropdown ──────────────────────────────
 const EmployeeSearch = ({ value, onChange }) => {
   const [query,    setQuery]    = useState("");
   const [results,  setResults]  = useState([]);
@@ -81,17 +83,12 @@ const EmployeeSearch = ({ value, onChange }) => {
     <div className="emp-search-wrap" ref={wrapRef}>
       <div className="emp-search-input-wrap">
         <input
-          type="text"
-          className="emp-search-input"
+          type="text" className="emp-search-input"
           placeholder="Search by name or employee ID..."
-          value={query}
-          onChange={handleInput}
-          onFocus={() => query && setOpen(true)}
-          autoComplete="off"
+          value={query} onChange={handleInput}
+          onFocus={() => query && setOpen(true)} autoComplete="off"
         />
-        {selected && (
-          <button className="emp-search-clear" onClick={handleClear} type="button">✕</button>
-        )}
+        {selected && <button className="emp-search-clear" onClick={handleClear} type="button">✕</button>}
       </div>
       {open && (
         <div className="emp-search-dropdown">
@@ -120,14 +117,178 @@ const EmployeeSearch = ({ value, onChange }) => {
   );
 };
 
-const ProgressBar = ({ value, color }) => (
-  <div className="gp-progress-bar">
-    <div className="gp-progress-fill" style={{ width: `${value}%`, background: color }} />
-    <span className="gp-progress-label">{value}%</span>
-  </div>
-);
+// ── Mini Progress Bar ─────────────────────────────────────
+const MiniProgress = ({ value }) => {
+  const color = value === 100 ? "#10b981" : value >= 60 ? "#3b82f6" : value >= 30 ? "#f59e0b" : "#ef4444";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 120 }}>
+      <div style={{ flex: 1, height: 6, background: "var(--bg-elevated)", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ width: `${value}%`, height: "100%", background: color, borderRadius: 99, transition: "width 0.3s" }} />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color, minWidth: 32 }}>{value}%</span>
+    </div>
+  );
+};
 
-export default function GoalsPage() {
+// ── Task Row ──────────────────────────────────────────────
+const TaskRow = ({ goal, isHRManager, onProgressUpdate, onStatusUpdate, onDelete, onComplete }) => {
+  const sc        = STATUS_COLORS[goal.status];
+  const isLocked  = goal.status === "completed";
+  const [slider, setSlider] = useState(goal.progress);
+  const [expanded, setExpanded] = useState(false);
+
+  const dueDate = goal.dueDate
+    ? new Date(goal.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+
+  const isOverdue = goal.dueDate && new Date(goal.dueDate) < new Date() && !isLocked;
+
+  return (
+    <>
+      <tr
+        className={`task-row ${isLocked ? "task-row--locked" : ""}`}
+        onClick={() => setExpanded(e => !e)}
+        style={{ cursor: "pointer" }}
+      >
+        {/* Category icon + Title */}
+        <td>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>{CAT_ICONS[goal.category]}</span>
+            <div>
+              <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: 14 }}>
+                {goal.title}
+                {isLocked && <span style={{ marginLeft: 8, fontSize: 10, background: "rgba(16,185,129,.15)", color: "#10b981", border: "1px solid rgba(16,185,129,.3)", padding: "2px 6px", borderRadius: 99 }}>✓ Done</span>}
+              </div>
+              {isHRManager && goal.employee && (
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                  {goal.employee.firstName} {goal.employee.lastName} · {goal.employee.employeeId}
+                </div>
+              )}
+            </div>
+          </div>
+        </td>
+
+        {/* Priority */}
+        <td>
+          <span style={{
+            fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 99,
+            background: PRIORITY_BG[goal.priority], color: PRIORITY_COLORS[goal.priority],
+            textTransform: "capitalize",
+          }}>{goal.priority}</span>
+        </td>
+
+        {/* Status */}
+        <td>
+          <span style={{
+            fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 99,
+            background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
+          }}>{STATUS_LABELS[goal.status]}</span>
+        </td>
+
+        {/* Progress */}
+        <td onClick={e => e.stopPropagation()}>
+          <MiniProgress value={slider} />
+        </td>
+
+        {/* Due date */}
+        <td style={{ fontSize: 12, color: isOverdue ? "#ef4444" : "var(--text-muted)" }}>
+          {dueDate || "—"}
+          {isOverdue && <span style={{ marginLeft: 4 }}>⚠</span>}
+        </td>
+
+        {/* Quarter */}
+        <td style={{ fontSize: 12, color: "var(--text-muted)" }}>Q{goal.quarter} {goal.year}</td>
+
+        {/* Actions */}
+        <td onClick={e => e.stopPropagation()}>
+          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+            {!isLocked && (
+              <button
+                title="Mark as Complete"
+                onClick={() => onComplete(goal)}
+                style={{
+                  padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  background: "rgba(16,185,129,.12)", color: "#10b981",
+                  border: "1px solid rgba(16,185,129,.3)", cursor: "pointer",
+                }}
+              >✓ Complete</button>
+            )}
+            {isHRManager && !isLocked && (
+              <select
+                className="gp-status-select"
+                value={goal.status}
+                onChange={e => { e.stopPropagation(); onStatusUpdate(goal._id, e.target.value); }}
+                style={{ fontSize: 11 }}
+              >
+                {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            )}
+            {isHRManager && (
+              <button className="gp-delete-btn" onClick={() => onDelete(goal._id)} title="Delete">🗑</button>
+            )}
+          </div>
+        </td>
+      </tr>
+
+      {/* Expanded row */}
+      {expanded && (
+        <tr className="task-row-expanded">
+          <td colSpan={7}>
+            <div style={{ padding: "12px 16px 16px", background: "var(--bg-elevated)", borderRadius: 8, margin: "0 4px 8px" }}>
+              {goal.target && (
+                <div style={{ marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Target</span>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>🎯 {goal.target}</div>
+                </div>
+              )}
+              {goal.description && (
+                <div style={{ marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Description</span>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>{goal.description}</div>
+                </div>
+              )}
+              {!isLocked && (
+                <div style={{ marginTop: 12 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Update Progress</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+                    <input
+                      type="range" min="0" max="100" step="5"
+                      value={slider}
+                      onChange={e => setSlider(Number(e.target.value))}
+                      className="gp-range"
+                      style={{ flex: 1 }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--violet)", minWidth: 36 }}>{slider}%</span>
+                    {slider !== goal.progress && (
+                      <button
+                        className="gp-save-progress-btn"
+                        onClick={() => onProgressUpdate(goal._id, slider)}
+                      >Save {slider}%</button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {goal.feedback && (
+                <div style={{ marginTop: 10, fontSize: 13, color: "var(--text-secondary)", fontStyle: "italic" }}>
+                  💬 {goal.feedback}
+                </div>
+              )}
+              {isLocked && (
+                <div style={{ marginTop: 8, fontSize: 12, color: "#10b981", display: "flex", alignItems: "center", gap: 6 }}>
+                  🔒 This task is completed and locked from further edits.
+                  {goal.completedAt && ` Completed on ${new Date(goal.completedAt).toLocaleDateString("en-IN")}.`}
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
+
+// ── Main Page ─────────────────────────────────────────────
+export default function TasksPage() {
   const { user } = useAuth();
   const role = user?.role;
   const isHRManager = ["admin", "hr", "manager"].includes(role);
@@ -138,10 +299,10 @@ export default function GoalsPage() {
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState(null);
   const [formError,    setFormError]    = useState(null);
-  const [editProgress, setEditProgress] = useState({});
   const [filterYear,   setFilterYear]   = useState(currentYear);
   const [filterQ,      setFilterQ]      = useState(currentQ);
   const [filterStatus, setFilterStatus] = useState("");
+  const [activeTab,    setActiveTab]    = useState("active"); // "active" | "archive"
 
   const [form, setForm] = useState({
     employeeId: "", title: "", description: "", category: "performance",
@@ -157,13 +318,17 @@ export default function GoalsPage() {
       const res = isHRManager ? await getAllGoals(params) : await getMyGoals(params);
       setGoals(res.data.data.goals || []);
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to load goals.");
+      setError(err?.response?.data?.message || "Failed to load tasks.");
     } finally {
       setLoading(false);
     }
   }, [filterYear, filterQ, filterStatus, isHRManager]);
 
   useEffect(() => { fetchGoals(); }, [fetchGoals]);
+
+  const activeGoals   = goals.filter(g => g.status !== "completed");
+  const archivedGoals = goals.filter(g => g.status === "completed");
+  const displayGoals  = activeTab === "active" ? activeGoals : archivedGoals;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -180,35 +345,59 @@ export default function GoalsPage() {
       });
       fetchGoals();
     } catch (err) {
-      setFormError(err?.response?.data?.message || "Failed to create goal.");
+      setFormError(err?.response?.data?.message || "Failed to create task.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleProgressUpdate = async (goalId, progress) => {
+    const goal = goals.find(g => g._id === goalId);
+    if (goal?.status === "completed") return; // locked
     await updateGoal(goalId, { progress: Number(progress) });
     setGoals(prev => prev.map(g =>
       g._id === goalId
         ? { ...g, progress: Number(progress), status: Number(progress) === 100 ? "completed" : Number(progress) > 0 ? "in_progress" : g.status }
         : g
     ));
-    setEditProgress(p => ({ ...p, [goalId]: undefined }));
+  };
+
+  const handleComplete = async (goal) => {
+    if (goal.status === "completed") return;
+    if (!window.confirm(`Mark "${goal.title}" as completed? This cannot be undone.`)) return;
+
+    await updateGoal(goal._id, { progress: 100, status: "completed" });
+    setGoals(prev => prev.map(g =>
+      g._id === goal._id ? { ...g, progress: 100, status: "completed", completedAt: new Date() } : g
+    ));
+
+    // Notify assigned manager
+    try {
+      await api.post("/notifications", {
+        recipientRole: "manager",
+        type: "goal_completed",
+        title: "Task Completed",
+        message: `${user?.name} has completed the task: "${goal.title}" successfully.`,
+        link: `/${role}/goals`,
+      });
+    } catch { /* silent — notification is non-critical */ }
   };
 
   const handleStatusUpdate = async (goalId, status) => {
+    const goal = goals.find(g => g._id === goalId);
+    if (goal?.status === "completed") return; // locked
     await updateGoal(goalId, { status });
     setGoals(prev => prev.map(g => g._id === goalId ? { ...g, status } : g));
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this goal?")) return;
+    if (!window.confirm("Delete this task?")) return;
     await deleteGoal(id);
     setGoals(prev => prev.filter(g => g._id !== id));
   };
 
   const total       = goals.length;
-  const completed   = goals.filter(g => g.status === "completed").length;
+  const completed   = archivedGoals.length;
   const atRisk      = goals.filter(g => g.status === "at_risk").length;
   const avgProgress = total > 0 ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / total) : 0;
 
@@ -216,37 +405,39 @@ export default function GoalsPage() {
     <DashboardLayout>
       <div className="gp-page">
 
+        {/* Header */}
         <div className="gp-header">
           <div>
-            <h1 className="gp-title">Goals & OKRs</h1>
-            <p className="gp-sub">{isHRManager ? "Set and track employee goals" : "Track your goals and progress"}</p>
+            <h1 className="gp-title">Tasks</h1>
+            <p className="gp-sub">{isHRManager ? "Assign and track employee tasks" : "Track your tasks and progress"}</p>
           </div>
           <div className="gp-header-actions">
             <select className="gp-select" value={filterYear} onChange={e => setFilterYear(Number(e.target.value))}>
-              {[currentYear, currentYear-1].map(y => <option key={y} value={y}>{y}</option>)}
+              {[currentYear, currentYear - 1].map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <select className="gp-select" value={filterQ} onChange={e => setFilterQ(e.target.value)}>
               <option value="">All quarters</option>
-              {[1,2,3,4].map(q => <option key={q} value={q}>Q{q}</option>)}
+              {[1, 2, 3, 4].map(q => <option key={q} value={q}>Q{q}</option>)}
             </select>
             <select className="gp-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="">All statuses</option>
-              {Object.entries(STATUS_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             {isHRManager && (
               <button className="gp-add-btn" onClick={() => setShowForm(s => !s)}>
-                {showForm ? "✕ Cancel" : "+ Add Goal"}
+                {showForm ? "✕ Cancel" : "+ Add Task"}
               </button>
             )}
           </div>
         </div>
 
+        {/* Stats */}
         {goals.length > 0 && (
           <div className="gp-summary-row">
             {[
-              { label: "Total Goals",  value: total,           color: "#7c3aed" },
-              { label: "Completed",    value: completed,       color: "#10b981" },
-              { label: "At Risk",      value: atRisk,          color: "#f59e0b" },
+              { label: "Total Tasks",  value: total,             color: "#7c3aed" },
+              { label: "Completed",    value: completed,         color: "#10b981" },
+              { label: "At Risk",      value: atRisk,            color: "#f59e0b" },
               { label: "Avg Progress", value: `${avgProgress}%`, color: "#3b82f6" },
             ].map(s => (
               <div key={s.label} className="gp-stat" style={{ borderColor: `${s.color}30` }}>
@@ -257,20 +448,18 @@ export default function GoalsPage() {
           </div>
         )}
 
+        {/* Add Task Form */}
         {showForm && isHRManager && (
           <div className="gp-form-card">
-            <h3 className="gp-form-title">New Goal</h3>
+            <h3 className="gp-form-title">New Task</h3>
             <form onSubmit={handleSubmit}>
               <div className="gp-form-grid">
                 <div className="gp-field gp-field--full">
                   <label>Employee *</label>
-                  <EmployeeSearch
-                    value={form.employeeId}
-                    onChange={id => setForm(f => ({ ...f, employeeId: id }))}
-                  />
+                  <EmployeeSearch value={form.employeeId} onChange={id => setForm(f => ({ ...f, employeeId: id }))} />
                 </div>
                 <div className="gp-field gp-field--full">
-                  <label>Goal Title *</label>
+                  <label>Task Title *</label>
                   <input type="text" placeholder="e.g. Improve customer response time" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
                 </div>
                 <div className="gp-field gp-field--full">
@@ -284,8 +473,8 @@ export default function GoalsPage() {
                 <div className="gp-field">
                   <label>Category</label>
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                    {["performance","learning","project","personal","other"].map(c => (
-                      <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>
+                    {["performance", "learning", "project", "personal", "other"].map(c => (
+                      <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                     ))}
                   </select>
                 </div>
@@ -300,7 +489,7 @@ export default function GoalsPage() {
                 <div className="gp-field">
                   <label>Quarter</label>
                   <select value={form.quarter} onChange={e => setForm(f => ({ ...f, quarter: Number(e.target.value) }))}>
-                    {[1,2,3,4].map(q => <option key={q} value={q}>Q{q}</option>)}
+                    {[1, 2, 3, 4].map(q => <option key={q} value={q}>Q{q}</option>)}
                   </select>
                 </div>
                 <div className="gp-field">
@@ -310,85 +499,71 @@ export default function GoalsPage() {
               </div>
               {formError && <p className="gp-form-error">⚠ {formError}</p>}
               <button type="submit" className="gp-submit-btn" disabled={submitting}>
-                {submitting ? "Creating..." : "Create Goal"}
+                {submitting ? "Creating..." : "Create Task"}
               </button>
             </form>
           </div>
         )}
 
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid var(--border)", paddingBottom: 0 }}>
+          {[
+            { key: "active",  label: `Active Tasks (${activeGoals.length})` },
+            { key: "archive", label: `Archive (${archivedGoals.length})` },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: "10px 20px", border: "none", background: "none", cursor: "pointer",
+                fontSize: 14, fontWeight: 600, fontFamily: "var(--font-body)",
+                color: activeTab === tab.key ? "var(--violet-light)" : "var(--text-muted)",
+                borderBottom: activeTab === tab.key ? "2px solid var(--violet)" : "2px solid transparent",
+                transition: "all 0.2s", marginBottom: -1,
+              }}
+            >{tab.label}</button>
+          ))}
+        </div>
+
+        {/* Task Table */}
         {loading ? (
-          <div className="gp-state"><div className="gp-spinner" /><p>Loading goals...</p></div>
+          <div className="gp-state"><div className="gp-spinner" /><p>Loading tasks...</p></div>
         ) : error ? (
           <div className="gp-state gp-state--error"><p>⚠ {error}</p></div>
-        ) : goals.length === 0 ? (
+        ) : displayGoals.length === 0 ? (
           <div className="gp-state">
-            <div className="gp-state-icon">🎯</div>
-            <p>No goals found for this period.</p>
+            <div className="gp-state-icon">{activeTab === "archive" ? "📦" : "🎯"}</div>
+            <p>{activeTab === "archive" ? "No completed tasks yet." : "No active tasks found for this period."}</p>
           </div>
         ) : (
-          <div className="gp-list">
-            {goals.map(goal => {
-              const sc = STATUS_COLORS[goal.status];
-              return (
-                <div key={goal._id} className="gp-card">
-                  <div className="gp-card__top">
-                    <div className="gp-card__icon">{CAT_ICONS[goal.category]}</div>
-                    <div className="gp-card__info">
-                      <div className="gp-card__title">{goal.title}</div>
-                      {isHRManager && (
-                        <div className="gp-card__emp">
-                          {goal.employee?.firstName} {goal.employee?.lastName} · {goal.employee?.employeeId}
-                        </div>
-                      )}
-                      <div className="gp-card__meta">
-                        Q{goal.quarter} {goal.year}
-                        {goal.dueDate && ` · Due ${new Date(goal.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`}
-                        · Assigned by {goal.assignedBy?.name}
-                      </div>
-                    </div>
-                    <div className="gp-card__badges">
-                      <span className="gp-priority-dot" style={{ background: PRIORITY_COLORS[goal.priority] }} title={goal.priority} />
-                      <span className="gp-status-badge" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                        {STATUS_LABELS[goal.status]}
-                      </span>
-                    </div>
-                  </div>
-
-                  {goal.target && <div className="gp-card__target">🎯 {goal.target}</div>}
-                  {goal.description && <div className="gp-card__desc">{goal.description}</div>}
-
-                  <ProgressBar value={goal.progress} color={goal.progress === 100 ? "#10b981" : goal.progress >= 60 ? "#3b82f6" : "#f59e0b"} />
-
-                  <div className="gp-card__footer">
-                    <div className="gp-progress-update">
-                      <input
-                        type="range" min="0" max="100" step="5"
-                        value={editProgress[goal._id] ?? goal.progress}
-                        onChange={e => setEditProgress(p => ({ ...p, [goal._id]: e.target.value }))}
-                        className="gp-range"
-                      />
-                      {editProgress[goal._id] !== undefined && editProgress[goal._id] != goal.progress && (
-                        <button className="gp-save-progress-btn" onClick={() => handleProgressUpdate(goal._id, editProgress[goal._id])}>
-                          Save {editProgress[goal._id]}%
-                        </button>
-                      )}
-                    </div>
-                    <div className="gp-card__actions">
-                      {isHRManager && (
-                        <select className="gp-status-select" value={goal.status} onChange={e => handleStatusUpdate(goal._id, e.target.value)}>
-                          {Object.entries(STATUS_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
-                        </select>
-                      )}
-                      {isHRManager && (
-                        <button className="gp-delete-btn" onClick={() => handleDelete(goal._id)}>🗑</button>
-                      )}
-                    </div>
-                  </div>
-
-                  {goal.feedback && <div className="gp-card__feedback">💬 <em>{goal.feedback}</em></div>}
-                </div>
-              );
-            })}
+          <div className="table-container">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
+                  {["Task", "Priority", "Status", "Progress", "Due Date", "Period", "Actions"].map(h => (
+                    <th key={h} style={{
+                      padding: "12px 16px", textAlign: "left",
+                      fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+                      textTransform: "uppercase", color: "var(--text-muted)",
+                      whiteSpace: "nowrap",
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {displayGoals.map(goal => (
+                  <TaskRow
+                    key={goal._id}
+                    goal={goal}
+                    isHRManager={isHRManager}
+                    onProgressUpdate={handleProgressUpdate}
+                    onStatusUpdate={handleStatusUpdate}
+                    onDelete={handleDelete}
+                    onComplete={handleComplete}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

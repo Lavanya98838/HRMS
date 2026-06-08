@@ -1,7 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import CloudinaryStorage from "multer-storage-cloudinary";
 import multer from "multer";
-;
 
 // ── Configure Cloudinary ──────────────────────────────
 cloudinary.config({
@@ -10,34 +8,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ── Profile Picture Storage ───────────────────────────
-const avatarStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "hrms/avatars",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    transformation: [
-      { width: 400, height: 400, crop: "fill", gravity: "face" },
-      { quality: "auto", fetch_format: "auto" },
-    ],
-    public_id: (req, file) => `avatar-${req.params.id}-${Date.now()}`,
-  },
-});
-
-// ── Document Storage ──────────────────────────────────
-const documentStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "hrms/documents",
-    allowed_formats: ["pdf", "doc", "docx", "jpg", "jpeg", "png"],
-    resource_type: "auto",
-    public_id: (req, file) => `doc-${req.params.id}-${Date.now()}`,
-  },
-});
-
-// ── File size limits ──────────────────────────────────
+// ── Memory storage — files go into buffer, we upload manually ──
 const avatarUpload = multer({
-  storage: avatarStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -49,7 +22,7 @@ const avatarUpload = multer({
 });
 
 const documentUpload = multer({
-  storage: documentStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = [
@@ -66,7 +39,6 @@ const documentUpload = multer({
   },
 });
 
-// ── CSV Upload (memory storage) ───────────────────────
 const csvUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -82,6 +54,34 @@ const csvUpload = multer({
     }
   },
 });
+
+// ── Upload buffer to Cloudinary ───────────────────────
+export const uploadToCloudinary = (buffer, mimetype, folder, publicId) => {
+  return new Promise((resolve, reject) => {
+    const resourceType = mimetype === "application/pdf" ||
+      mimetype === "application/msword" ||
+      mimetype.includes("wordprocessingml") ? "raw" : "image";
+
+    const options = {
+      folder,
+      resource_type: resourceType,
+      ...(publicId && { public_id: publicId }),
+    };
+
+    if (resourceType === "image") {
+      options.transformation = [
+        { quality: "auto", fetch_format: "auto" },
+      ];
+    }
+
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
+
+    stream.end(buffer);
+  });
+};
 
 // ── Delete file from Cloudinary ───────────────────────
 export const deleteFromCloudinary = async (publicId, resourceType = "image") => {

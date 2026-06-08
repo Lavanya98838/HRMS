@@ -3,7 +3,7 @@ import Department from "../models/Department.model.js";
 import Role from "../models/Role.model.js";
 import User from "../models/User.model.js";
 import { generateEmployeeId } from "../utils/employeeId.js";
-import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadToCloudinary } from "../utils/cloudinary.js";
 import { parseEmployeeCSV, getCSVTemplate } from "../utils/csvParser.js";
 import bcrypt from "bcryptjs";
 import {
@@ -138,10 +138,28 @@ export const createEmployee = async (req, res) => {
         email: email.toLowerCase().trim(),
         password: defaultPassword,
         role: "employee",
+        roleLevel: 1,  // default level — updated below if role is assigned
         isVerified: true,
         isActive: true,
         employeeId: await generateEmployeeId(),
       });
+    }
+
+    // ── Sync roleLevel from assigned Role on creation ──
+    if (role && userAccount) {
+      const roleDoc = await Role.findById(role).select("level name");
+      if (roleDoc) {
+        const level = roleDoc.level;
+        let portalRole = "employee";
+        if (level >= 10)     portalRole = "employee"; // subadmin via roleLevel
+        else if (level >= 8) portalRole = "hr";
+        else if (level >= 6) portalRole = "manager";
+        else                 portalRole = "employee";
+        await User.findByIdAndUpdate(userAccount._id, {
+          roleLevel: level,
+          role: portalRole,
+        });
+      }
     }
 
     const employeeId = await generateEmployeeId();
@@ -213,7 +231,6 @@ export const updateEmployee = async (req, res) => {
       if (dateOfBirth !== undefined)     employee.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
       if (gender !== undefined)          employee.gender = gender;
     } else {
-      // HR/Admin can update everything
       const {
         firstName, lastName, phone, department, role,
         designation, employmentType, dateOfJoining, dateOfBirth,
@@ -244,6 +261,29 @@ export const updateEmployee = async (req, res) => {
         });
       }
 
+      // ── Sync role level to User when role changes ──────
+      // This is what controls which portal the user lands on after login
+      if (role !== undefined && role && employee.user) {
+        const roleDoc = await Role.findById(role).select("level name");
+        if (roleDoc) {
+          const level = roleDoc.level;
+          // Map level → portal role string
+          let portalRole = "employee";
+          if (level >= 10)     portalRole = "employee"; // subadmin handled by roleLevel
+          else if (level >= 8) portalRole = "hr";
+          else if (level >= 6) portalRole = "manager";
+          else                 portalRole = "employee";
+
+          await User.findByIdAndUpdate(employee.user, {
+            roleLevel: level,
+            // Only update role string if not admin (protect admin account)
+            ...(req.user.role !== "admin" || portalRole !== "admin"
+              ? { role: portalRole }
+              : {}),
+          });
+        }
+      }
+
       if (isActive === false) {
         await User.findByIdAndUpdate(employee.user, { isActive: false });
       } else if (isActive === true) {
@@ -258,8 +298,6 @@ export const updateEmployee = async (req, res) => {
       { path: "user", select: "name email isActive" },
     ]);
 
-    // ── Notify employee: profile was updated by HR/Admin ──
-    // Only notify if HR/Admin made the change (not the employee themselves)
     if (!isOwnProfile && employee.user) {
       await createNotification({
         recipient: employee.user,
@@ -295,7 +333,6 @@ export const deleteEmployee = async (req, res) => {
       }
     }
 
-    // Deactivate user + clear refresh token to immediately invalidate any active session
     await User.findByIdAndUpdate(employee.user, {
       isActive: false,
       refreshToken: null,
@@ -318,18 +355,27 @@ export const uploadAvatar = async (req, res) => {
 
     if (!req.file) return badRequest(res, "No image file provided");
 
+    // Delete old avatar from Cloudinary
     if (employee.profilePicture?.publicId) {
       await deleteFromCloudinary(employee.profilePicture.publicId);
     }
 
+    // Upload new avatar to Cloudinary via buffer
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      req.file.mimetype,
+      "hrms/avatars",
+      `avatar-${employee._id}-${Date.now()}`
+    );
+
     employee.profilePicture = {
-      url: req.file.path,
-      publicId: req.file.filename,
+      url:      result.secure_url,
+      publicId: result.public_id,
     };
     await employee.save();
 
     await User.findByIdAndUpdate(employee.user, {
-      profilePicture: req.file.path,
+      profilePicture: result.secure_url,
     });
 
     return successResponse(res, 200, "Profile picture updated", {
@@ -352,11 +398,19 @@ export const uploadDocument = async (req, res) => {
     const { name, type } = req.body;
     if (!name) return badRequest(res, "Document name is required");
 
+    // Upload to Cloudinary via buffer
+    const result = await uploadToCloudinary(
+      req.file.buffer,
+      req.file.mimetype,
+      "hrms/documents",
+      `doc-${employee._id}-${Date.now()}`
+    );
+
     const document = {
-      name: name.trim(),
-      type: type || "other",
-      url: req.file.path,
-      publicId: req.file.filename,
+      name:       name.trim(),
+      type:       type || "other",
+      url:        result.secure_url,
+      publicId:   result.public_id,
       uploadedAt: new Date(),
     };
 

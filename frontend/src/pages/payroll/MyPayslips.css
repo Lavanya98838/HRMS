@@ -1,3 +1,8 @@
+/* ═══════════════════════════════════════════════════════════
+   MyPayslips.css — Full Light & Dark Theme Support
+   All colors use CSS variables from ThemeContext
+   ═══════════════════════════════════════════════════════════ */
+
 /* ── Page ────────────────────────────────────────────────── */
 .mps-page {
   padding: 24px;
@@ -20,29 +25,38 @@
 .mps-header__title {
   font-size: 22px;
   font-weight: 700;
-  color: #f3f4f6;
+  color: var(--text-primary);   /* ← was hardcoded #f3f4f6 */
   margin: 0;
 }
 
 .mps-header__sub {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-muted);     /* ← was hardcoded #6b7280 */
   margin: 4px 0 0;
 }
 
 .mps-year-select {
-  background: #1a1a2e;
-  border: 1px solid rgba(124, 58, 237, 0.3);
-  color: #e5e7eb;
+  background: var(--bg-card);          /* ← was hardcoded dark */
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
   outline: none;
   transition: border-color 0.15s;
+  font-family: var(--font-body);
 }
 
-.mps-year-select:focus { border-color: #7c3aed; }
+.mps-year-select:focus {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 3px var(--violet-dim);
+}
+
+.mps-year-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
 
 /* ── Summary Row ─────────────────────────────────────────── */
 .mps-summary-row {
@@ -52,21 +66,36 @@
 }
 
 .mps-stat-card {
-  background: #0f0f1a;
-  border: 1px solid rgba(124, 58, 237, 0.15);
+  background: var(--bg-card);           /* ← was hardcoded #0f0f1a */
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
-.mps-stat-card:hover { border-color: rgba(124, 58, 237, 0.35); }
+.mps-stat-card:hover {
+  border-color: var(--violet);
+  box-shadow: 0 4px 20px var(--violet-dim);
+  transform: translateY(-1px);
+}
 
 .mps-stat-icon { font-size: 18px; }
-.mps-stat-val  { font-size: 18px; font-weight: 700; color: #e5e7eb; }
-.mps-stat-lbl  { font-size: 11px; color: #6b7280; font-weight: 500; }
+
+.mps-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);   /* ← was hardcoded #e5e7eb */
+  font-family: var(--font-display);
+}
+
+.mps-stat-lbl {
+  font-size: 11px;
+  color: var(--text-muted);     /* ← was hardcoded #6b7280 */
+  font-weight: 500;
+}
 
 /* ── States ──────────────────────────────────────────────── */
 .mps-state {
@@ -76,20 +105,25 @@
   justify-content: center;
   padding: 60px 24px;
   gap: 10px;
-  color: #6b7280;
+  color: var(--text-muted);     /* ← was hardcoded */
   font-size: 14px;
   text-align: center;
 }
 
-.mps-state--error { color: #f87171; }
+.mps-state--error { color: var(--error, #ef4444); }
 .mps-state-icon   { font-size: 36px; }
-.mps-state-sub    { font-size: 12px; color: #4b5563; }
+
+.mps-state-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
 
 .mps-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid rgba(124, 58, 237, 0.2);
-  border-top-color: #7c3aed;
+  border: 3px solid var(--violet-dim);
+  border-top-color: var(--violet);
   border-radius: 50%;
   animation: mps-spin 0.7s linear infinite;
 }
@@ -97,18 +131,21 @@
 @keyframes mps-spin { to { transform: rotate(360deg); } }
 
 .mps-retry-btn {
-  background: rgba(124, 58, 237, 0.15);
-  border: 1px solid rgba(124, 58, 237, 0.3);
-  color: #a78bfa;
+  background: var(--violet-dim);
+  border: 1px solid var(--violet);
+  color: var(--violet);
   padding: 7px 16px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
   margin-top: 6px;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.15s;
+  font-family: var(--font-body);
 }
 
-.mps-retry-btn:hover { background: rgba(124, 58, 237, 0.25); }
+.mps-retry-btn:hover {
+  opacity: 0.8;
+}
 
 /* ── List ────────────────────────────────────────────────── */
 .mps-list {
@@ -125,29 +162,40 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
+/* Empty month — not generated */
 .mps-item--empty {
-  background: #0a0a14;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  opacity: 0.4;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  opacity: 0.45;
   display: flex;
   justify-content: space-between;
 }
 
-.mps-item--empty .mps-item__month { font-size: 13px; color: #6b7280; }
-.mps-item--empty .mps-item__na    { font-size: 12px; color: #374151; }
+.mps-item--empty .mps-item__month {
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
+.mps-item--empty .mps-item__na {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Active payslip row */
 .mps-item--active {
-  background: #0f0f1a;
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   cursor: pointer;
 }
 
 .mps-item--active:hover {
-  border-color: rgba(124, 58, 237, 0.45);
-  background: #111126;
+  border-color: var(--violet);
+  background: var(--bg-elevated);
+  box-shadow: 0 2px 12px var(--violet-dim);
 }
 
 /* ── Item Left ───────────────────────────────────────────── */
@@ -160,9 +208,9 @@
 }
 
 .mps-item__month-badge {
-  background: rgba(124, 58, 237, 0.15);
-  border: 1px solid rgba(124, 58, 237, 0.25);
-  color: #c084fc;
+  background: var(--violet-dim);
+  border: 1px solid var(--violet);
+  color: var(--violet);
   font-size: 11px;
   font-weight: 700;
   width: 40px;
@@ -173,17 +221,18 @@
   justify-content: center;
   flex-shrink: 0;
   letter-spacing: 0.3px;
+  font-family: var(--font-display);
 }
 
 .mps-item__month {
   font-size: 14px;
   font-weight: 600;
-  color: #e5e7eb;
+  color: var(--text-primary);   /* ← was hardcoded */
 }
 
 .mps-item__meta {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);     /* ← was hardcoded */
   margin-top: 2px;
 }
 
@@ -200,56 +249,88 @@
 .mps-item__net {
   font-size: 16px;
   font-weight: 700;
-  color: #34d399;
+  /* Green that works in both themes */
+  color: var(--success, #059669);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+}
+
+/* Light mode: use a deeper green so it's not washed out */
+:root[data-theme='light'] .mps-item__net,
+.light .mps-item__net {
+  color: #047857;
 }
 
 .mps-item__gross {
   font-size: 11px;
-  color: #4b5563;
+  color: var(--text-muted);
   margin-top: 1px;
 }
 
-/* Status Badge */
+/* ── Status Badges ───────────────────────────────────────── */
 .mps-item__badge {
   font-size: 11px;
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 
+/* Paid — Green */
 .mps-item__badge--paid {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--success, #059669);
+  border: 1px solid rgba(5, 150, 105, 0.3);
 }
 
+/* Light mode — darker green text */
+:root[data-theme='light'] .mps-item__badge--paid,
+.light .mps-item__badge--paid {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.3);
+}
+
+/* Generated — Amber */
 .mps-item__badge--generated {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(217, 119, 6, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.3);
 }
 
+:root[data-theme='light'] .mps-item__badge--generated,
+.light .mps-item__badge--generated {
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.3);
+}
+
+/* Draft — Neutral */
 .mps-item__badge--draft {
-  background: rgba(107, 114, 128, 0.12);
-  color: #9ca3af;
-  border: 1px solid rgba(156, 163, 175, 0.2);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
+/* ── View Button ─────────────────────────────────────────── */
 .mps-item__view-btn {
-  background: rgba(124, 58, 237, 0.12);
-  border: 1px solid rgba(124, 58, 237, 0.25);
-  color: #a78bfa;
+  background: var(--violet-dim);
+  border: 1px solid var(--violet);
+  color: var(--violet);
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
   white-space: nowrap;
+  font-family: var(--font-body);
 }
 
-.mps-item__view-btn:hover { background: rgba(124, 58, 237, 0.25); }
+.mps-item__view-btn:hover {
+  opacity: 0.8;
+  transform: translateX(1px);
+}
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 640px) {

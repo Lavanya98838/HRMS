@@ -1,5 +1,6 @@
 import Goal     from "../models/Goal.model.js";
 import Employee  from "../models/Employee.model.js";
+import User      from "../models/User.model.js";
 import { createNotification } from "./notification.controller.js";
 import {
   successResponse, badRequest, notFound,
@@ -41,22 +42,21 @@ export const createGoal = async (req, res) => {
       await createNotification({
         recipient: employee.user,
         type:      "profile_updated",
-        title:     "New Goal Assigned",
-        message:   `A new goal has been assigned to you: "${title}". Due: ${dueDate ? new Date(dueDate).toLocaleDateString("en-IN") : "No deadline"}.`,
+        title:     "New Task Assigned",
+        message:   `A new task has been assigned to you: "${title}". Due: ${dueDate ? new Date(dueDate).toLocaleDateString("en-IN") : "No deadline"}.`,
         link:      `/employee/goals`,
         meta:      { goalId: goal._id },
       });
     }
 
-    return successResponse(res, 201, "Goal created", { goal });
+    return successResponse(res, 201, "Task created", { goal });
   } catch (error) {
     console.error("Create Goal Error:", error);
-    return serverError(res, "Failed to create goal");
+    return serverError(res, "Failed to create task");
   }
 };
 
 // ── GET /api/goals ────────────────────────────────────────
-// HR/Admin/Manager: all goals
 export const getAllGoals = async (req, res) => {
   try {
     const { year, quarter, status, department, page = 1, limit = 20 } = req.query;
@@ -64,7 +64,6 @@ export const getAllGoals = async (req, res) => {
     let empFilter = {};
     if (department) empFilter.department = department;
 
-    // Manager sees only their department
     if (req.user.role === "manager") {
       const mgr = await Employee.findOne({ user: req.user.id });
       if (mgr?.department) empFilter.department = mgr.department;
@@ -97,7 +96,7 @@ export const getAllGoals = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    return successResponse(res, 200, "Goals", {
+    return successResponse(res, 200, "Tasks", {
       goals,
       pagination: {
         total, page: parseInt(page),
@@ -106,7 +105,7 @@ export const getAllGoals = async (req, res) => {
       },
     });
   } catch (error) {
-    return serverError(res, "Failed to fetch goals");
+    return serverError(res, "Failed to fetch tasks");
   }
 };
 
@@ -114,7 +113,7 @@ export const getAllGoals = async (req, res) => {
 export const getMyGoals = async (req, res) => {
   try {
     const employee = await Employee.findOne({ user: req.user.id });
-    if (!employee) return successResponse(res, 200, "My goals", { goals: [] });
+    if (!employee) return successResponse(res, 200, "My tasks", { goals: [] });
 
     const { year, status } = req.query;
     const filter = { employee: employee._id };
@@ -125,9 +124,9 @@ export const getMyGoals = async (req, res) => {
       .populate("assignedBy", "name")
       .sort({ createdAt: -1 });
 
-    return successResponse(res, 200, "My goals", { goals });
+    return successResponse(res, 200, "My tasks", { goals });
   } catch (error) {
-    return serverError(res, "Failed to fetch goals");
+    return serverError(res, "Failed to fetch tasks");
   }
 };
 
@@ -148,35 +147,83 @@ export const getEmployeeGoals = async (req, res) => {
       .populate("assignedBy", "name")
       .sort({ createdAt: -1 });
 
-    return successResponse(res, 200, "Employee goals", { goals, employee });
+    return successResponse(res, 200, "Employee tasks", { goals, employee });
   } catch (error) {
-    return serverError(res, "Failed to fetch goals");
+    return serverError(res, "Failed to fetch tasks");
   }
 };
 
 // ── PUT /api/goals/:id ────────────────────────────────────
 export const updateGoal = async (req, res) => {
   try {
-    const goal = await Goal.findById(req.params.id).populate("employee");
-    if (!goal) return notFound(res, "Goal not found");
+    const goal = await Goal.findById(req.params.id)
+      .populate("employee")
+      .populate("assignedBy", "name");
+    if (!goal) return notFound(res, "Task not found");
+
+    // ── LOCK: completed tasks cannot be edited ────────────
+    if (goal.status === "completed") {
+      return forbidden(res, "This task is completed and locked from further edits.");
+    }
 
     const { title, description, target, priority, dueDate,
             status, progress, feedback, category, quarter } = req.body;
 
-    // Employees can only update progress
     if (req.user.role === "employee") {
       const self = await Employee.findOne({ user: req.user.id });
       if (!self || self._id.toString() !== goal.employee._id.toString()) {
         return forbidden(res, "Access denied");
       }
-      if (progress !== undefined) goal.progress = progress;
-      // Auto-update status based on progress
-      if (progress === 100) {
+
+      // Employees can only update progress
+      if (progress !== undefined) goal.progress = Number(progress);
+
+      if (Number(progress) === 100) {
         goal.status      = "completed";
         goal.completedAt = new Date();
-      } else if (progress > 0 && goal.status === "not_started") {
+
+        // ── Notify manager on completion ──────────────────
+        try {
+          const employee = await Employee.findById(goal.employee._id);
+          const empUser  = await User.findById(employee.user);
+
+          // Find manager of this employee's department
+          const managers = await Employee.find({ department: employee.department })
+            .populate({ path: "user", match: { role: "manager" } });
+
+          for (const mgr of managers) {
+            if (mgr.user) {
+              await createNotification({
+                recipient: mgr.user._id,
+                type:      "goal_completed",
+                title:     "Task Completed ✅",
+                message:   `${empUser?.name || "An employee"} has completed the task: "${goal.title}" successfully.`,
+                link:      `/manager/goals`,
+                meta:      { goalId: goal._id },
+              });
+            }
+          }
+
+          // Also notify HR and Admin
+          const hrAdmins = await User.find({ role: { $in: ["hr", "admin"] } });
+          for (const u of hrAdmins) {
+            await createNotification({
+              recipient: u._id,
+              type:      "goal_completed",
+              title:     "Task Completed ✅",
+              message:   `${empUser?.name || "An employee"} has completed the task: "${goal.title}".`,
+              link:      `/hr/goals`,
+              meta:      { goalId: goal._id },
+            });
+          }
+        } catch (notifErr) {
+          console.warn("Notification error:", notifErr.message);
+        }
+
+      } else if (Number(progress) > 0 && goal.status === "not_started") {
         goal.status = "in_progress";
       }
+
     } else {
       // HR/Admin/Manager can update everything
       if (title !== undefined)       goal.title       = title;
@@ -184,19 +231,29 @@ export const updateGoal = async (req, res) => {
       if (target !== undefined)      goal.target      = target;
       if (priority !== undefined)    goal.priority    = priority;
       if (dueDate !== undefined)     goal.dueDate     = dueDate;
-      if (status !== undefined)      goal.status      = status;
-      if (progress !== undefined)    goal.progress    = progress;
       if (feedback !== undefined)    goal.feedback    = feedback;
       if (category !== undefined)    goal.category    = category;
       if (quarter !== undefined)     goal.quarter     = quarter;
-      if (status === "completed")    goal.completedAt = new Date();
+
+      if (status !== undefined) {
+        goal.status = status;
+        if (status === "completed") goal.completedAt = new Date();
+      }
+
+      if (progress !== undefined) {
+        goal.progress = Number(progress);
+        if (Number(progress) === 100) {
+          goal.status      = "completed";
+          goal.completedAt = new Date();
+        }
+      }
     }
 
     await goal.save();
-
-    return successResponse(res, 200, "Goal updated", { goal });
+    return successResponse(res, 200, "Task updated", { goal });
   } catch (error) {
-    return serverError(res, "Failed to update goal");
+    console.error("Update Goal Error:", error);
+    return serverError(res, "Failed to update task");
   }
 };
 
@@ -204,10 +261,10 @@ export const updateGoal = async (req, res) => {
 export const deleteGoal = async (req, res) => {
   try {
     const goal = await Goal.findById(req.params.id);
-    if (!goal) return notFound(res, "Goal not found");
+    if (!goal) return notFound(res, "Task not found");
     await goal.deleteOne();
-    return successResponse(res, 200, "Goal deleted");
+    return successResponse(res, 200, "Task deleted");
   } catch (error) {
-    return serverError(res, "Failed to delete goal");
+    return serverError(res, "Failed to delete task");
   }
 };

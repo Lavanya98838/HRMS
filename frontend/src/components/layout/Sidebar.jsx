@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, getPortalFromUser } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 // ── Lucide SVG Icons ─────────────────────────────────────
 const Icon = ({ name, size = 17 }) => {
@@ -72,7 +73,7 @@ const NAV_ITEMS = {
       section: 'Performance',
       items: [
         { label: 'Reviews',             path: '/admin/performance',   icon: 'star' },
-        { label: 'Goals & OKRs',        path: '/admin/goals',         icon: 'target' },
+        { label: 'Tasks',        path: '/admin/goals',         icon: 'target' },
       ],
     },
     {
@@ -132,7 +133,7 @@ const NAV_ITEMS = {
       section: 'Performance',
       items: [
         { label: 'Reviews',             path: '/subadmin/performance',   icon: 'star' },
-        { label: 'Goals & OKRs',        path: '/subadmin/goals',         icon: 'target' },
+        { label: 'Tasks',        path: '/subadmin/goals',         icon: 'target' },
       ],
     },
     {
@@ -154,12 +155,6 @@ const NAV_ITEMS = {
       section: 'Intelligence',
       items: [
         { label: 'Smart Assistant',     path: '/subadmin/ai-assistant',  icon: 'bot' },
-      ],
-    },
-    {
-      section: 'System',
-      items: [
-        { label: 'Audit Logs',          path: '/subadmin/audit-logs',    icon: 'search' },
       ],
     },
   ],
@@ -192,7 +187,7 @@ const NAV_ITEMS = {
       section: 'Performance',
       items: [
         { label: 'Reviews',             path: '/hr/performance',      icon: 'star' },
-        { label: 'Goals & OKRs',        path: '/hr/goals',            icon: 'target' },
+        { label: 'Tasks',        path: '/hr/goals',            icon: 'target' },
       ],
     },
     {
@@ -225,9 +220,9 @@ const NAV_ITEMS = {
       ],
     },
     {
-      section: 'My Team',
+      section: 'Team',
       items: [
-        { label: 'Employees',           path: '/manager/employees',     icon: 'users' },
+        { label: 'My Team',             path: '/manager/employees',     icon: 'users' },
       ],
     },
     {
@@ -242,7 +237,7 @@ const NAV_ITEMS = {
       section: 'Performance',
       items: [
         { label: 'Reviews',             path: '/manager/performance',   icon: 'star' },
-        { label: 'Goals & OKRs',        path: '/manager/goals',         icon: 'target' },
+        { label: 'Tasks',        path: '/manager/goals',         icon: 'target' },
       ],
     },
     {
@@ -263,67 +258,66 @@ const NAV_ITEMS = {
 
   employee: [
     {
-      section: 'My Workspace',
+      section: 'Overview',
       items: [
-        { label: 'Dashboard',           path: '/employee/dashboard',    icon: 'dashboard' },
-        { label: 'My Profile',          path: '/employee/profile',      icon: 'user' },
+        { label: 'Dashboard',           path: '/employee/dashboard',     icon: 'dashboard' },
+        { label: 'My Profile',          path: '/employee/profile',       icon: 'user' },
       ],
     },
     {
-      section: 'Self Service',
+      section: 'My Work',
       items: [
-        { label: 'Attendance',          path: '/employee/attendance',   icon: 'clock' },
-        { label: 'Leave',               path: '/employee/leave',        icon: 'palmtree' },
-        { label: 'Payslips',            path: '/employee/payslips',     icon: 'dollar' },
-        { label: 'My Shifts',           path: '/employee/shifts',       icon: 'calendar' },
+        { label: 'Attendance',          path: '/employee/attendance',    icon: 'clock' },
+        { label: 'Leave',               path: '/employee/leave',         icon: 'palmtree' },
+        { label: 'Shifts',              path: '/employee/shifts',        icon: 'calendar' },
+        { label: 'My Payslips',         path: '/employee/payslips',      icon: 'dollar' },
       ],
     },
     {
       section: 'Performance',
       items: [
-        { label: 'My Reviews',          path: '/employee/performance',  icon: 'star' },
-        { label: 'My Goals',            path: '/employee/goals',        icon: 'target' },
+        { label: 'Reviews',             path: '/employee/performance',   icon: 'star' },
+        { label: 'Tasks',        path: '/employee/goals',         icon: 'target' },
       ],
     },
     {
       section: 'Workspace',
       items: [
-        { label: 'Announcements',       path: '/employee/announcements',icon: 'megaphone' },
-        { label: 'Notifications',       path: '/employee/notifications',icon: 'bell' },
-        { label: 'Documents',           path: '/employee/documents',    icon: 'folder' },
+        { label: 'Announcements',       path: '/employee/announcements', icon: 'megaphone' },
+        { label: 'Notifications',       path: '/employee/notifications', icon: 'bell' },
+        { label: 'Documents',           path: '/employee/documents',     icon: 'folder' },
       ],
     },
     {
       section: 'Intelligence',
       items: [
-        { label: 'Smart Assistant',     path: '/employee/ai-assistant', icon: 'bot' },
+        { label: 'Smart Assistant',     path: '/employee/ai-assistant',  icon: 'bot' },
       ],
     },
   ],
 };
 
 const PORTAL_META = {
-  admin:    { color: '#7c3aed', label: 'Admin',     gradient: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
-  subadmin: { color: '#0891b2', label: 'Executive', gradient: 'linear-gradient(135deg,#0891b2,#0e7490)' },
-  hr:       { color: '#e11d74', label: 'HR',        gradient: 'linear-gradient(135deg,#e11d74,#be185d)' },
-  manager:  { color: '#f97316', label: 'Manager',   gradient: 'linear-gradient(135deg,#f97316,#ea580c)' },
-  employee: { color: '#10b981', label: 'Employee',  gradient: 'linear-gradient(135deg,#10b981,#059669)' },
+  admin:    { label: 'Admin',    color: '#7c3aed', gradient: 'linear-gradient(135deg,#7c3aed,#e11d74)' },
+  subadmin: { label: 'Sub Admin',color: '#6366f1', gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
+  hr:       { label: 'HR',       color: '#e11d74', gradient: 'linear-gradient(135deg,#e11d74,#f97316)' },
+  manager:  { label: 'Manager',  color: '#f97316', gradient: 'linear-gradient(135deg,#f97316,#f59e0b)' },
+  employee: { label: 'Employee', color: '#10b981', gradient: 'linear-gradient(135deg,#10b981,#06b6d4)' },
 };
 
-// ── Collapsible Section ──────────────────────────────────
-const NavSection = ({ section, items, collapsed, location }) => {
-  const hasActive = items.some(item => location.pathname === item.path);
-  const [open, setOpen] = useState(true); // default open
+// ── Nav Section ──────────────────────────────────────────
+const NavSection = ({ section, items, collapsed, showCaption, location }) => {
+  const hasActive = items.some(i => location.pathname === i.path);
+  const [open, setOpen] = useState(true);
 
-  // Auto-open section if it has the active route
   useEffect(() => {
     if (hasActive) setOpen(true);
   }, [location.pathname]);
 
   return (
     <div style={{ marginBottom: 4 }}>
-      {/* Section header — only when expanded */}
-      {!collapsed && (
+      {/* Section header — only when expanded AND caption enabled */}
+      {!collapsed && showCaption && (
         <button
           onClick={() => setOpen(o => !o)}
           style={{
@@ -343,7 +337,7 @@ const NavSection = ({ section, items, collapsed, location }) => {
       )}
 
       {/* Items */}
-      {(open || collapsed) && items.map((item) => (
+      {(open || collapsed || !showCaption) && items.map((item) => (
         item.soon ? (
           <div key={item.path} className="nav-item"
             style={{ opacity: 0.4, cursor: 'not-allowed' }}
@@ -376,15 +370,20 @@ const NavSection = ({ section, items, collapsed, location }) => {
 // ── Sidebar ──────────────────────────────────────────────
 const Sidebar = ({ collapsed, onToggle }) => {
   const { user, logout } = useAuth();
+  const { settings } = useTheme();
   const navigate  = useNavigate();
   const location  = useLocation();
   const navRef    = useRef(null);
+
+  // Mini layout from settings overrides the manual collapse
+  const isMini = settings.layout === 'mini';
+  const isCollapsed = collapsed || isMini;
+  const showCaption = settings.sidebarCaption;
 
   const portal    = getPortalFromUser(user);
   const navItems  = NAV_ITEMS[portal] || NAV_ITEMS.employee;
   const meta      = PORTAL_META[portal] || PORTAL_META.employee;
 
-  // Preserve scroll position on navigation
   useEffect(() => {
     const saved = sessionStorage.getItem('sidebar-scroll');
     if (saved && navRef.current) navRef.current.scrollTop = parseInt(saved, 10);
@@ -407,7 +406,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
     ?.split(' ')?.map(n => n[0])?.join('')?.toUpperCase()?.slice(0, 2) || 'U';
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
+    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
 
       {/* ── Logo / Toggle ──────────────────────────── */}
       <div className="sidebar-logo">
@@ -415,21 +414,23 @@ const Sidebar = ({ collapsed, onToggle }) => {
           width: 34, height: 34, fontSize: 14, flexShrink: 0,
           background: meta.gradient,
         }}>H</div>
-        {!collapsed && (
+        {!isCollapsed && (
           <span className="hrms-logo-text" style={{ fontSize: 15 }}>HRMS Portal</span>
         )}
-        <button onClick={onToggle} style={{
-          marginLeft: 'auto', background: 'none', border: 'none',
-          color: 'var(--text-muted)', cursor: 'pointer', padding: 4,
-          display: 'flex', alignItems: 'center', flexShrink: 0,
-          borderRadius: 6, transition: 'color 0.2s',
-        }}>
-          <Icon name="menu" size={16} />
-        </button>
+        {!isMini && (
+          <button onClick={onToggle} style={{
+            marginLeft: 'auto', background: 'none', border: 'none',
+            color: 'var(--text-muted)', cursor: 'pointer', padding: 4,
+            display: 'flex', alignItems: 'center', flexShrink: 0,
+            borderRadius: 6, transition: 'color 0.2s',
+          }}>
+            <Icon name="menu" size={16} />
+          </button>
+        )}
       </div>
 
       {/* ── Portal badge (expanded only) ───────────── */}
-      {!collapsed && (
+      {!isCollapsed && (
         <div style={{ padding: '0 12px 8px' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -440,7 +441,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
             textTransform: 'uppercase', color: meta.color,
           }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: meta.color }} />
-            {meta.label} Portal
+            {meta.label}
           </div>
         </div>
       )}
@@ -452,7 +453,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
             key={group.section}
             section={group.section}
             items={group.items}
-            collapsed={collapsed}
+            collapsed={isCollapsed}
+            showCaption={showCaption}
             location={location}
           />
         ))}
@@ -467,7 +469,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
               ? <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
               : initials}
           </div>
-          {!collapsed && (
+          {!isCollapsed && (
             <>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{

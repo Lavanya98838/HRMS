@@ -22,8 +22,12 @@ const ACCESS_TTL      = 15 * 60 * 1000;
 // role === 'admin' flag → admin (special hardcoded account)
 export const getPortalFromUser = (userData) => {
   if (!userData) return null;
-  if (userData.role === 'admin') return 'admin';
-  const level = userData.roleLevel ?? userData.role?.level ?? 0;
+  if (userData.role === 'admin')    return 'admin';
+  if (userData.role === 'subadmin') return 'subadmin';  // explicit subadmin role
+  if (userData.role === 'hr')       return 'hr';
+  if (userData.role === 'manager')  return 'manager';
+  // Fallback: use roleLevel for legacy/manual entries
+  const level = userData.roleLevel ?? 0;
   if (level >= 10) return 'subadmin';
   if (level >= 8)  return 'hr';
   if (level >= 6)  return 'manager';

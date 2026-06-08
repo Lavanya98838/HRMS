@@ -99,7 +99,8 @@ export const roleGuard = (...allowedRoles) => {
 //  Admin > HR > Manager > Employee
 // ─────────────────────────────────────────────────────────────
 const ROLE_HIERARCHY = {
-  admin: 4,
+  admin: 5,
+  subadmin: 4,
   hr: 3,
   manager: 2,
   employee: 1,

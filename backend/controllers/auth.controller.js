@@ -544,3 +544,26 @@ export const setupAccount = async (req, res) => {
     return serverError(res, "Failed to set up account");
   }
 };
+
+// ── Add this to backend/controllers/authController.js ────
+// POST /api/auth/verify-password
+export const verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return badRequest(res, "Password is required");
+
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) return notFound(res, "User not found");
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return unauthorized(res, "Incorrect password");
+
+    return successResponse(res, 200, "Password verified");
+  } catch (error) {
+    console.error("Verify Password Error:", error);
+    return serverError(res, "Failed to verify password");
+  }
+};
+
+// ── Add this line to backend/routes/auth.routes.js ───────
+// router.post("/verify-password", verifyToken, verifyPassword);

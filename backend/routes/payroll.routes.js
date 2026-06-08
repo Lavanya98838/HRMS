@@ -14,11 +14,11 @@ router.use(verifyToken);
 router.get("/my", getMyPayroll);
 
 // ── Admin / HR ────────────────────────────────────────────
-router.get("/",                          roleGuard("admin", "hr"), getAllPayroll);
-router.post("/generate/:employeeId",     roleGuard("admin", "hr"), generatePayroll);
-router.post("/generate-all",             roleGuard("admin", "hr"), generateBulkPayroll);
-router.get("/employee/:employeeId",      roleGuard("admin", "hr", "employee"), getEmployeePayroll);
-router.put("/:id",                       roleGuard("admin", "hr"), updatePayroll);
+router.get("/",                          roleGuard("admin", "subadmin", "hr"), getAllPayroll);
+router.post("/generate/:employeeId",     roleGuard("admin", "subadmin", "hr"), generatePayroll);
+router.post("/generate-all",             roleGuard("admin", "subadmin", "hr"), generateBulkPayroll);
+router.get("/employee/:employeeId",      roleGuard("admin", "subadmin", "hr", "employee"), getEmployeePayroll);
+router.put("/:id",                       roleGuard("admin", "subadmin", "hr"), updatePayroll);
 
 // ── Download — all roles (controller enforces self-only for employee) ──
 router.get("/:id/download", downloadPayslip);

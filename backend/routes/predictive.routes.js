@@ -9,7 +9,7 @@ import { verifyToken, roleGuard } from "../middleware/verifyToken.js";
 
 const router = express.Router();
 router.use(verifyToken);
-router.use(roleGuard("admin", "hr"));
+router.use(roleGuard("admin", "subadmin", "hr"));
 
 router.get("/attrition",            getAttritionRisk);
 router.get("/department-health",    getDepartmentHealth);

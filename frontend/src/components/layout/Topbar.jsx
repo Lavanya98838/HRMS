@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../notifications/NotificationBell';
+import { SettingsTrigger } from '../settings/SettingsPanel';
+import Breadcrumb from './Breadcrumb';
 
 const PAGE_TITLES = {
   '/dashboard':     { title: 'Dashboard',           icon: '⊞'  },
@@ -16,13 +18,16 @@ const PAGE_TITLES = {
   '/analytics':     { title: 'Analytics',           icon: '📊' },
   '/notifications': { title: 'Notifications',       icon: '🔔' },
   '/documents':     { title: 'Documents',           icon: '📁' },
-  '/performance':   { title: 'Performance Reviews', icon: '📊' },
-  '/shifts':        { title: 'Shift Schedule',       icon: '🗓️' },
-  '/announcements': { title: 'Announcements',        icon: '📢' },
-  '/goals':         { title: 'Goals & OKRs',         icon: '🎯' },
+  '/performance':   { title: 'Performance Reviews', icon: '⭐' },
+  '/shifts':        { title: 'Shift Schedule',      icon: '🗓️' },
+  '/announcements': { title: 'Announcements',       icon: '📢' },
+  '/goals':         { title: 'Tasks',               icon: '🎯' },
+  '/audit-logs':    { title: 'Audit Logs',          icon: '🔍' },
+  '/ai-assistant':  { title: 'Smart Assistant',     icon: '✦'  },
+  '/predictive':    { title: 'Predictive',          icon: '📈' },
 };
 
-const Topbar = ({ onSearch, searchPlaceholder = 'Search...' }) => {
+const Topbar = ({ onSearch, searchPlaceholder = 'Search...', onSettingsOpen }) => {
   const { user } = useAuth();
   const location = useLocation();
   const [searchVal, setSearchVal] = useState('');
@@ -45,15 +50,19 @@ const Topbar = ({ onSearch, searchPlaceholder = 'Search...' }) => {
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <div>
+        {/* Page title + breadcrumb stacked */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           <div className="page-title">
             {pageInfo.icon} {pageInfo.title}
           </div>
+          <Breadcrumb />
         </div>
 
         {onSearch && (
           <div className="topbar-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
@@ -65,9 +74,13 @@ const Topbar = ({ onSearch, searchPlaceholder = 'Search...' }) => {
             {searchVal && (
               <button
                 onClick={() => { setSearchVal(''); onSearch(''); }}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                style={{
+                  background: 'none', border: 'none', color: 'var(--text-muted)',
+                  cursor: 'pointer', padding: 0, display: 'flex',
+                }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
@@ -78,14 +91,24 @@ const Topbar = ({ onSearch, searchPlaceholder = 'Search...' }) => {
 
       <div className="topbar-right">
         {/* Date */}
-        <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        <div style={{
+          fontSize: 12, color: 'var(--text-muted)',
+          display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
           {today}
         </div>
 
-        {/* Live notification bell — replaces old placeholder */}
+        {/* Settings trigger */}
+        <SettingsTrigger onClick={onSettingsOpen} />
+
+        {/* Live notification bell */}
         <NotificationBell />
 
         {/* User avatar */}
@@ -99,7 +122,8 @@ const Topbar = ({ onSearch, searchPlaceholder = 'Search...' }) => {
           border: '2px solid var(--border)',
         }}>
           {user?.profilePicture
-            ? <img src={user.profilePicture} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={user.profilePicture} alt={user?.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : user?.name?.split(' ')?.map(n => n[0])?.join('')?.toUpperCase()?.slice(0, 2) || 'U'
           }
         </div>

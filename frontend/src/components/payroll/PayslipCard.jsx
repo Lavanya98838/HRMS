@@ -36,22 +36,22 @@ export default function PayslipCard({ payroll, employee, onClose }) {
   };
 
   const earnings = [
-    { label: "Basic Salary",  value: payroll.basic },
-    { label: "HRA",           value: payroll.hra },
-    { label: "Allowances",    value: payroll.allowances },
+    { label: "Basic Salary", value: payroll.basic },
+    { label: "HRA",          value: payroll.hra },
+    { label: "Allowances",   value: payroll.allowances },
   ];
 
   const deductions = [
-    { label: "Deductions",      value: payroll.deductions },
-    { label: "Tax (TDS 10%)",   value: payroll.taxDeduction },
-    { label: "Provident Fund",  value: payroll.pfDeduction },
-    { label: "Late Deduction",  value: payroll.lateDeduction },
+    { label: "Deductions",     value: payroll.deductions },
+    { label: "Tax (TDS 10%)",  value: payroll.taxDeduction },
+    { label: "Provident Fund", value: payroll.pfDeduction },
+    { label: "Late Deduction", value: payroll.lateDeduction },
   ];
 
   const totalDeductions =
-    (payroll.deductions || 0) +
-    (payroll.taxDeduction || 0) +
-    (payroll.pfDeduction || 0) +
+    (payroll.deductions    || 0) +
+    (payroll.taxDeduction  || 0) +
+    (payroll.pfDeduction   || 0) +
     (payroll.lateDeduction || 0);
 
   return (
@@ -118,10 +118,10 @@ export default function PayslipCard({ payroll, employee, onClose }) {
             <h3 className="ps-section__title">Attendance Summary</h3>
             <div className="ps-attendance-row">
               {[
-                { label: "Working Days", value: payroll.workingDays, color: "blue" },
+                { label: "Working Days", value: payroll.workingDays, color: "blue"  },
                 { label: "Present",      value: payroll.presentDays, color: "green" },
                 { label: "On Leave",     value: payroll.leaveDays,   color: "amber" },
-                { label: "Absent",       value: payroll.absentDays,  color: "red" },
+                { label: "Absent",       value: payroll.absentDays,  color: "red"   },
               ].map(({ label, value, color }) => (
                 <div key={label} className={`ps-att-card ps-att-card--${color}`}>
                   <div className="ps-att-val">{value}</div>
@@ -135,8 +135,6 @@ export default function PayslipCard({ payroll, employee, onClose }) {
           <section className="ps-section">
             <h3 className="ps-section__title">Salary Breakdown</h3>
             <div className="ps-salary-grid">
-
-              {/* Earnings */}
               <div className="ps-sal-col">
                 <div className="ps-sal-col-header ps-sal-col-header--earn">Earnings</div>
                 {earnings.map(({ label, value }) => (
@@ -150,8 +148,6 @@ export default function PayslipCard({ payroll, employee, onClose }) {
                   <span className="ps-sal-amount ps-sal-amount--earn">{fmt(payroll.grossSalary)}</span>
                 </div>
               </div>
-
-              {/* Deductions */}
               <div className="ps-sal-col">
                 <div className="ps-sal-col-header ps-sal-col-header--ded">Deductions</div>
                 {deductions.map(({ label, value }) => (
@@ -165,10 +161,7 @@ export default function PayslipCard({ payroll, employee, onClose }) {
                   <span className="ps-sal-amount ps-sal-amount--ded">{fmt(totalDeductions)}</span>
                 </div>
               </div>
-
             </div>
-
-            {/* Net Salary */}
             <div className="ps-net">
               <div className="ps-net__label">Net Salary (Take Home)</div>
               <div className="ps-net__amount">{fmt(payroll.netSalary)}</div>
@@ -193,10 +186,7 @@ export default function PayslipCard({ payroll, employee, onClose }) {
               disabled={downloading}
             >
               {downloading ? (
-                <>
-                  <span className="ps-btn-spinner" />
-                  Generating PDF...
-                </>
+                <><span className="ps-btn-spinner" />Generating PDF...</>
               ) : (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -209,7 +199,6 @@ export default function PayslipCard({ payroll, employee, onClose }) {
               )}
             </button>
           </div>
-
         </div>
       </div>
     </div>

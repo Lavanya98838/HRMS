@@ -12,8 +12,12 @@ import {
   updateActivity,
   sendInvite,
   setupAccount,
+  verifyPassword,
 } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
+
+
+
 
 const router = express.Router();
 
@@ -109,5 +113,7 @@ router.post("/setup-account", setupAccount);
 // Send invite to employee (HR/Admin only)
 // POST /api/auth/invite/:employeeId
 router.post("/invite/:employeeId", verifyToken, sendInvite);
+
+router.post("/verify-password", verifyToken, verifyPassword);
 
 export default router;

@@ -13,10 +13,10 @@ const router = express.Router();
 router.use(verifyToken);
 
 // ── CSV Template & Bulk Upload ────────────────────────────
-router.get("/csv-template", roleGuard("admin", "hr"), downloadCSVTemplate);
+router.get("/csv-template", roleGuard("admin", "subadmin", "hr"), downloadCSVTemplate);
 router.post(
   "/bulk-upload",
-  roleGuard("admin", "hr"),
+  roleGuard("admin", "subadmin", "hr"),
   csvUpload.single("file"),
   bulkUpload
 );
@@ -27,9 +27,9 @@ router.get("/",      getEmployees);
 // ALL roles can view a profile (controller handles own-only for employee)
 router.get("/:id",   getEmployeeById);
 
-router.post("/",     roleGuard("admin", "hr"), createEmployee);
+router.post("/",     roleGuard("admin", "subadmin", "hr"), createEmployee);
 router.put("/:id",   updateEmployee);
-router.delete("/:id", roleGuard("admin"), deleteEmployee);
+router.delete("/:id", roleGuard("admin", "subadmin"), deleteEmployee);
 
 // ── File Uploads ──────────────────────────────────────────
 router.post("/:id/avatar",    avatarUpload.single("avatar"),    uploadAvatar);
