@@ -34,6 +34,16 @@ const PORT = process.env.PORT || 10000;
 //  MIDDLEWARE
 // ─────────────────────────────────────────────────────────────
 
+// ── CORS — must be first, before helmet and rate limiters ──────
+const corsOptions = {
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // handle preflight requests
+
 // ── Helmet — secure HTTP headers ─────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // allow Cloudinary images
@@ -76,15 +86,7 @@ app.use(mongoSanitize({
   replaceWith: "_",           // replace $ and . in keys with _
 }));
 
-// CORS — allow frontend origin with credentials
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    credentials: true,       // required for HttpOnly cookies
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// CORS already applied at top of middleware stack
 
 // Parse JSON bodies
 app.use(express.json({ limit: "10mb" }));
