@@ -1,32 +1,19 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// ── Gmail Transporter ────────────────────────────────────────
-const createGmailTransporter = () => {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = createGmailTransporter();
+// ── Sender address ───────────────────────────────────────────
+// Resend free tier allows sending from onboarding@resend.dev
+// Once you verify a domain, replace with your own email
+const FROM_ADDRESS = process.env.EMAIL_FROM || "HRMS Portal <onboarding@resend.dev>";
 
-// ── Verify connection on startup ─────────────────────────────
+// ── Verify on startup ────────────────────────────────────────
 export const verifyMailer = async () => {
-  try {
-    await transporter.verify();
-    console.log("📧 Mailer: Gmail SMTP connected successfully");
-  } catch (error) {
-    console.warn("⚠️  Mailer: Gmail SMTP connection failed:", error.message);
-    console.warn("   OTPs will be logged to console as fallback");
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("⚠️  Mailer: RESEND_API_KEY not set — emails will be skipped");
+    return;
   }
+  console.log("📧 Mailer: Resend initialized successfully");
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -122,7 +109,6 @@ const welcomeEmailTemplate = (name, role) => `
 </html>
 `;
 
-
 const inviteEmailTemplate = (name, setupUrl, inviterName, role, expiryHours) => `
 <!DOCTYPE html>
 <html>
@@ -188,13 +174,9 @@ const inviteEmailTemplate = (name, setupUrl, inviterName, role, expiryHours) => 
 //  SEND FUNCTIONS
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Send OTP email for password reset
- */
 export const sendOTPEmail = async (to, name, otp) => {
   const expiryMinutes = process.env.OTP_EXPIRY_MINUTES || 10;
 
-  // Always log to console as backup
   console.log("\n" + "=".repeat(50));
   console.log(`📧 OTP EMAIL`);
   console.log(`   To:   ${to}`);
@@ -203,43 +185,38 @@ export const sendOTPEmail = async (to, name, otp) => {
   console.log("=".repeat(50) + "\n");
 
   try {
-    const info = await transporter.sendMail({
-      from: `"HRMS Portal 🔐" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
       to,
       subject: "Your HRMS Password Reset OTP",
       html: otpEmailTemplate(name, otp, expiryMinutes),
     });
-    console.log(`✅ OTP email sent to ${to} (messageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    console.log(`✅ OTP email sent to ${to} (id: ${data.id})`);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error(`❌ OTP email failed for ${to}:`, error.message);
-    // Don't throw — OTP is still logged to console as fallback
     return { success: false, error: error.message };
   }
 };
 
-/**
- * Send welcome email on successful registration
- */
 export const sendWelcomeEmail = async (to, name, role) => {
   try {
-    const info = await transporter.sendMail({
-      from: `"HRMS Portal 🎉" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
       to,
       subject: `Welcome to HRMS Portal, ${name}!`,
       html: welcomeEmailTemplate(name, role),
     });
+    if (error) throw new Error(error.message);
     console.log(`📧 Welcome email sent to ${to}`);
-    return { success: true, messageId: info.messageId };
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.warn(`⚠️  Welcome email failed for ${to}:`, error.message);
     return { success: false };
   }
 };
 
-/**
- * Send account setup invite email
- */
 export const sendInviteEmail = async (to, name, setupUrl, inviterName, role) => {
   const expiryHours = 48;
 
@@ -251,14 +228,15 @@ export const sendInviteEmail = async (to, name, setupUrl, inviterName, role) => 
   console.log("=".repeat(50) + "\n");
 
   try {
-    const info = await transporter.sendMail({
-      from: `"HRMS Portal 🎉" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: FROM_ADDRESS,
       to,
       subject: `You're invited to HRMS Portal — Set up your account`,
       html: inviteEmailTemplate(name, setupUrl, inviterName, role, expiryHours),
     });
-    console.log(`✅ Invite email sent to ${to} (messageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
+    if (error) throw new Error(error.message);
+    console.log(`✅ Invite email sent to ${to} (id: ${data.id})`);
+    return { success: true, messageId: data.id };
   } catch (error) {
     console.error(`❌ Invite email failed for ${to}:`, error.message);
     return { success: false, error: error.message };

@@ -164,11 +164,11 @@ employeeSchema.virtual("grossSalary").get(function () {
 });
 
 // ── Indexes ───────────────────────────────────────────
-employeeSchema.index({ employeeId: 1 });
-employeeSchema.index({ email: 1 });
+// Note: employeeId and user already have unique:true above — no explicit index needed
 employeeSchema.index({ department: 1 });
 employeeSchema.index({ role: 1 });
 employeeSchema.index({ isActive: 1 });
+employeeSchema.index({ email: 1 });
 employeeSchema.index({ firstName: "text", lastName: "text", email: "text" });
 
 const Employee = mongoose.model("Employee", employeeSchema);

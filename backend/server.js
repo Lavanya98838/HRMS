@@ -192,7 +192,7 @@ const startServer = async () => {
       console.log(`  🚀 HRMS Backend running on port ${PORT}`);
       console.log(`  🌍 Environment: ${process.env.NODE_ENV}`);
       console.log(`  🔗 API Base: http://localhost:${PORT}/api`);
-      console.log(`  📧 Mailer: Gmail (Nodemailer)`);
+      console.log(`  📧 Mailer: Resend`);
       console.log(`  🔒 Security: Helmet + Rate Limit + Sanitize`);
       console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     });
